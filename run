@@ -1,0 +1,6 @@
+#!/bin/bash -e
+
+MODE="release"
+
+swift build -c $MODE
+.build/$MODE/ColonyPigmentationAnalysis $@
