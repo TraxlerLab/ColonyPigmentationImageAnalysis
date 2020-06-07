@@ -72,7 +72,7 @@ sudo xcode-select -s /Applications/Xcode.app
 ```
 
 ### Linux
-Any Linux distribution officially supported by [Swift](https://swift.org) will work. The instructions here will focus on Ubuntu 18.04 LTS
+Any Linux distribution officially supported by [Swift](https://swift.org) will work. The instructions here will focus on Ubuntu 18.04 LTS, but are almost identical in Ubuntu 20.04.
 
 - Download a Swift release from the [Swift.org downloads page](https://swift.org/download/). Example:
 
@@ -96,6 +96,18 @@ cp -R swift-5.2.4-RELEASE-ubuntu18.04 ~/swift-5.2.4-RELEASE-ubuntu18.04
 ```bash
 echo "export PATH=\"${PATH}:$HOME/swift-5.2.4-RELEASE-ubuntu18.04/usr/bin\"" >> ~/.bashrc
 ```
+
+- Re-evaluate the `~/bashrc` file so the changes take affect:
+
+```bash
+source ~/.bashrc
+```
+
+- Install the dependencies Swift needs:
+
+```bash
+sudo apt install clang libicu-dev libcurl4-openssl-dev libpython2.7
+````
 
 ### Windows
 Swift is not currently well supported on Linux. This will change soon. In the mean time, consider installing an Ubuntu virtual machine and following the Linux instructions above.
