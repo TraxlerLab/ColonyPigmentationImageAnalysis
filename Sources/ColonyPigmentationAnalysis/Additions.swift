@@ -54,8 +54,8 @@ extension Array: StorableInDisk where Element == PigmentationSample {
     static var fileExtension: String { "csv" }
     
     func save(toPath path: String) throws {
-        let header = "x, average, stddev\n"
-        let contents = map({ "\($0.x),\($0.averagePigmentation),\($0.standardDeviation)" }).joined(separator: "\n")
+        let header = "x, average, stddev, columns\n"
+        let contents = map({ "\($0.x),\($0.averagePigmentation),\($0.standardDeviation),\($0.includedColumnIndices.map(String.init).joined(separator: "-"))" }).joined(separator: "\n")
         
         try CSV(contents: header + contents).save(toPath: path)
     }

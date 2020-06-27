@@ -21,10 +21,14 @@ public struct PigmentationSample {
     /// The standard deviation from averaging the values at this column.
     public let standardDeviation: Double
     
+    /// The indices of the columns averaged in this sample
+    public let includedColumnIndices: [Int]
+    
     public init(x: Double, averagePigmentation: Double, standardDeviation: Double, includedColumnIndices: [Int]) {
         self.x = x
         self.averagePigmentation = averagePigmentation
         self.standardDeviation = standardDeviation
+        self.includedColumnIndices = includedColumnIndices
     }
     
     /// The result of averaging the values in each column of the provided `pigmentationSamples`.
@@ -43,7 +47,8 @@ public struct PigmentationSample {
                 PigmentationSample(
                     x: sample.x,
                     averagePigmentation: pigmentationValues.average,
-                    standardDeviation: pigmentationValues.standardDeviation)
+                    standardDeviation: pigmentationValues.standardDeviation,
+                    includedColumnIndices: sample.includedColumnIndices)
             )
         }
         
@@ -78,7 +83,7 @@ public extension ImageMap {
         let expectedNumberOfSamples = horizontalSamples ?? areaOfInterest.size.width
         precondition(areaOfInterest.size.width >= expectedNumberOfSamples, "The specified number of horizontal samples (\(expectedNumberOfSamples) is less than the width of the colony mask (\(areaOfInterest.size.width))")
         
-        var samples: [(average: Double, stddev: Double)] = []
+        var samples: [(average: Double, stddev: Double, columnIndices: [Int])] = []
         samples.reserveCapacity(expectedNumberOfSamples)
         
         let maskColumnRange = Double(areaOfInterest.minX)...Double(areaOfInterest.maxX)
@@ -111,7 +116,7 @@ public extension ImageMap {
             
             let pigmentationValues = sampledColumnPixels.map({ $0.pigmentation(withKeyColor: keyColor, baselinePigmentation: baselinePigmentation) })
             
-            samples.append((average: pigmentationValues.average, stddev: pigmentationValues.standardDeviation))
+            samples.append((average: pigmentationValues.average, stddev: pigmentationValues.standardDeviation, columnIndices: Array(columns)))
         }
         
         precondition(samples.count == expectedNumberOfSamples, "The number of calculated samples (\(samples) doesn't match the expected number of samples (\(expectedNumberOfSamples))")
@@ -121,7 +126,9 @@ public extension ImageMap {
             PigmentationSample(
                 x: pigmentationValuesRange.interpolation(for: $0),
                 averagePigmentation: $1.average,
-                standardDeviation: $1.stddev)
+                standardDeviation: $1.stddev,
+                includedColumnIndices: $1.columnIndices
+            )
         }
     }
     
