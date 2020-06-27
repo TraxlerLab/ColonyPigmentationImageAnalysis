@@ -15,12 +15,16 @@ public struct PigmentationSample {
     /// A value between 0 and 1 that indicates how far along the x axis this sample should be placed in a 2D chart.
     public let x: Double
     
-    /// The pigmentation value at this point. A value between 0 and 1.
+    /// The pigmentation value at this column. A value between 0 and 1.
     public let averagePigmentation: Double
     
-    public init(x: Double, averagePigmentation: Double) {
+    /// The standard deviation from averaging the values at this column.
+    public let standardDeviation: Double
+    
+    public init(x: Double, averagePigmentation: Double, standardDeviation: Double, includedColumnIndices: [Int]) {
         self.x = x
         self.averagePigmentation = averagePigmentation
+        self.standardDeviation = standardDeviation
     }
     
     /// The result of averaging the values in each column of the provided `pigmentationSamples`.
@@ -33,9 +37,14 @@ public struct PigmentationSample {
         }
         
         for (sampleIndex, sample) in first.enumerated() {
-            let averagePigmentation = pigmentationSamples.lazy.map { $0[sampleIndex].averagePigmentation }.average
+            let pigmentationValues = pigmentationSamples.map { $0[sampleIndex].averagePigmentation }
             
-            averagePigmentations.append(.init(x: sample.x, averagePigmentation: averagePigmentation))
+            averagePigmentations.append(
+                PigmentationSample(
+                    x: sample.x,
+                    averagePigmentation: pigmentationValues.average,
+                    standardDeviation: pigmentationValues.standardDeviation)
+            )
         }
         
         return averagePigmentations
@@ -69,8 +78,8 @@ public extension ImageMap {
         let expectedNumberOfSamples = horizontalSamples ?? areaOfInterest.size.width
         precondition(areaOfInterest.size.width >= expectedNumberOfSamples, "The specified number of horizontal samples (\(expectedNumberOfSamples) is less than the width of the colony mask (\(areaOfInterest.size.width))")
         
-        var pigmentationValues: [Double] = []
-        pigmentationValues.reserveCapacity(expectedNumberOfSamples)
+        var samples: [(average: Double, stddev: Double)] = []
+        samples.reserveCapacity(expectedNumberOfSamples)
         
         let maskColumnRange = Double(areaOfInterest.minX)...Double(areaOfInterest.maxX)
         let sampleIndexRange = 0..<expectedNumberOfSamples
@@ -100,15 +109,20 @@ public extension ImageMap {
                 logger.warning("Found no white pixels in mask for sample index \(sampleIndex) (columns \(columns) in roi \(areaOfInterest)). This may be an error.")
             }
             
-            let averagePigmentation = Double(sampledColumnPixels.lazy.map({ $0.pigmentation(withKeyColor: keyColor, baselinePigmentation: baselinePigmentation) }).average)
+            let pigmentationValues = sampledColumnPixels.map({ $0.pigmentation(withKeyColor: keyColor, baselinePigmentation: baselinePigmentation) })
             
-            pigmentationValues.append(averagePigmentation)
+            samples.append((average: pigmentationValues.average, stddev: pigmentationValues.standardDeviation))
         }
         
-        precondition(pigmentationValues.count == expectedNumberOfSamples, "The number of calculated samples (\(pigmentationValues) doesn't match the expected number of samples (\(expectedNumberOfSamples))")
+        precondition(samples.count == expectedNumberOfSamples, "The number of calculated samples (\(samples) doesn't match the expected number of samples (\(expectedNumberOfSamples))")
         
-        let pigmentationValuesRange = ClosedRange(pigmentationValues.indices)
-        return pigmentationValues.enumerated().map({ .init(x: pigmentationValuesRange.interpolation(for: $0), averagePigmentation: $1) })
+        let pigmentationValuesRange = ClosedRange(samples.indices)
+        return samples.enumerated().map {
+            PigmentationSample(
+                x: pigmentationValuesRange.interpolation(for: $0),
+                averagePigmentation: $1.average,
+                standardDeviation: $1.stddev)
+        }
     }
     
     /// Calculates a series of pigmentation values corresponding to the average pigmentation in each column, left to right.

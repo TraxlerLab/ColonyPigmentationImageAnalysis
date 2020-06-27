@@ -6,17 +6,28 @@
 //  Copyright © 2020 Javier Soto. All rights reserved.
 //
 
-internal extension Collection where Element == Double {
+import Foundation
+
+internal extension RandomAccessCollection where Element == Double {
     var average: Double {
+        guard !isEmpty else { return 0 }
+        
         var total: Double = 0
-        var count = 0
         
         for element in self {
             total += element
-            count += 1
         }
         
-        return count > 0 ? total / Double(count) : 0
+        return total / Double(count)
+    }
+    
+    var standardDeviation: Double {
+        guard !isEmpty else { return 0 }
+        
+        let mean = average
+        
+        let sumOfSquaredAvgDiff = map { pow($0 - mean, 2) }.reduce(0, +)
+        return sqrt(sumOfSquaredAvgDiff / Double(count))
     }
 }
 
