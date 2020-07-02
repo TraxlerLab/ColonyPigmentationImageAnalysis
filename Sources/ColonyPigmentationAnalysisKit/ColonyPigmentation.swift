@@ -131,21 +131,15 @@ public extension ImageMap {
             )
         }
     }
-    
-    /// Calculates a series of pigmentation values corresponding to the average pigmentation in each column, left to right.
-    /// Unlike `calculate2DPigmentationAverages`, this version limits the output to `horizontalSamples` samples by interpolating the results,
-    /// and instead of returning the values of the pigmentation, returns the x coordinates (from 0 to 1) of each column, repeated a number of times proportional to the pigmentation.
-    func calculate1DPigmentationHistogram(withColonyMask colonyMask: MaskBitMap, pigmentationKeyColor: RGBColor,
-        interpolateToNumberOfHorizontalSamples horizontalSamples: Int, baselinePigmentation: Double = 0,
-        areaOfInterestHeightPercentage: Double) -> [Double] {
-        return calculate2DPigmentationAverages(
-            withColonyMask: colonyMask, keyColor: pigmentationKeyColor,
-            baselinePigmentation: baselinePigmentation, areaOfInterestHeightPercentage: areaOfInterestHeightPercentage,
-            horizontalSamples: horizontalSamples
-        ).flatMap { (pigmentationSample) -> [Double] in
+}
+
+public extension Array where Element == PigmentationSample {
+    /// Returns the x coordinates (from 0 to 1) of each column in `self`, repeated a number of times proportional to the pigmentation.
+    func oneDimensionHistogram() -> [Double] {
+        return flatMap { (pigmentationSample) -> [Double] in
             let numberOfTimes = Int(pigmentationSample.averagePigmentation / 0.1)
             
-            return Array(repeating: pigmentationSample.x, count: numberOfTimes)
+            return [Double](repeating: pigmentationSample.x, count: numberOfTimes)
         }
     }
 }

@@ -111,21 +111,8 @@ let pigmentationHistogramTask = Task<(ImageMap, MaskBitMap), PigmentationHistogr
 
 // MARK: - Pigmentation Series
 
-struct PigmentationSeriesTaskConfiguration {
-    let pigmentationColor: ColonyPigmentationAnalysisKit.RGBColor
-    let horizontalSamples: Int
-    let baselinePigmentation: Double
-    let pigmentationAreaOfInterestHeightPercentage: Double
-}
-
-let pigmentationSeriesTask = Task<(ImageMap, MaskBitMap), PigmentationSeriesTaskConfiguration, CSV>(name: "Pigmentation Series") { input, configuration in
-    let pigmentationSeries = input.0.calculate1DPigmentationHistogram(
-        withColonyMask: input.1,
-        pigmentationKeyColor: configuration.pigmentationColor,
-        interpolateToNumberOfHorizontalSamples: configuration.horizontalSamples,
-        baselinePigmentation: configuration.baselinePigmentation,
-        areaOfInterestHeightPercentage: configuration.pigmentationAreaOfInterestHeightPercentage
-    )
+let pigmentationSeriesTask = Task<[PigmentationSample], Void, CSV>(name: "Pigmentation Series") { input, configuration in
+    let pigmentationSeries = input.oneDimensionHistogram()
 
     return CSV(contents: pigmentationSeries.map({ String(format: "%f", $0) }).joined(separator: "\n"))
 }

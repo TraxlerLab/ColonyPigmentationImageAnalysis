@@ -154,8 +154,8 @@ private extension Main {
             
             try taskRunner.run(
                 pigmentationSeriesTask,
-                withInput: (image, colonyMask),
-                configuration: .init(pigmentationColor: pigmentationColor, horizontalSamples: pigmentationHistogramSampleCount, baselinePigmentation: baselinePigmentation, pigmentationAreaOfInterestHeightPercentage: pigmentationAreaOfInterestHeightPercentage),
+                withInput: sampledPigmentation,
+                configuration: (),
                 artifactDirectory: "PigmentationSeries"
             )
         }
