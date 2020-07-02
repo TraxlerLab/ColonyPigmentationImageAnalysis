@@ -81,6 +81,8 @@ struct Main: ParsableCommand {
                 try measure(name: "Average pigmentation across images") {
                     let averagedPigmentationSamples = PigmentationSample.averaging(Self.pigmentationSamples)
                     try averagedPigmentationSamples.save(toPath: self.outputPath.appending("average_pigmentation.\([PigmentationSample].fileExtension)"))
+                    
+                    try pigmentationSeriesTask.run(withInput: averagedPigmentationSamples, configuration: ()).save(toPath: self.outputPath.appending("average_pigmentation_1d.csv"))
                 }
             } catch {
                 lastCaughtError = error
