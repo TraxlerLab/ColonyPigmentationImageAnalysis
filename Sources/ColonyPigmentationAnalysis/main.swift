@@ -61,6 +61,8 @@ struct Main: ParsableCommand {
         
         logger.info("\("Analyzing \(String(images.count).onBlack()) images".blue())")
         
+        try saveCurrentConfigurationToFile()
+        
         let queue = DispatchQueue(label: "colony-analysis-queue", qos: .userInitiated, attributes: parallelize ? .concurrent : [], autoreleaseFrequency: .inherit, target: nil)
         
         var lastCaughtError: Swift.Error?
@@ -184,6 +186,25 @@ extension Main {
             discussion: "See README.md for more information.",
             version: "v1.0",
             shouldDisplay: true)
+    }
+}
+
+private extension Main {
+    func saveCurrentConfigurationToFile() throws {
+        let configuration = """
+        Date: \(Date())
+        Images: \(images.count)
+        Downscale Factor: \(downscaleFactor)
+        Background Chroma Key Color: \(backgroundChromaKeyColor)
+        Background Chroma Key Threshold: \(backgroundChromaKeyThreshold)
+        Pigmentation Color: \(pigmentationColor)
+        Baseline Pigmentation: \(baselinePigmentation)
+        Pigmentation Histogram Sample Count: \(pigmentationHistogramSampleCount)
+        Pigmentation Area of Interest Height Percentage: \(pigmentationAreaOfInterestHeightPercentage)
+        """
+        
+        let path = outputPath.appending("parameters.txt")
+        try configuration.write(to: URL(fileURLWithPath: path), atomically: true, encoding: .utf8)
     }
 }
 
