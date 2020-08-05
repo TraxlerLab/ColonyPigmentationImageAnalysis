@@ -95,6 +95,7 @@ let removeBackgroundTask = Task<(ImageMap, MaskBitMap), (), ImageMap>(name: "Rem
 struct PigmentationHistogramTaskConfiguration {
     let pigmentationColor: ColonyPigmentationAnalysisKit.RGBColor
     let baselinePigmentation: Double
+    let pigmentationValuesToSubtract: [Double]?
     let pigmentationAreaOfInterestHeightPercentage: Double
     let horizontalSamples: Int?
 }
@@ -104,6 +105,7 @@ let pigmentationHistogramTask = Task<(ImageMap, MaskBitMap), PigmentationHistogr
         withColonyMask: input.1,
         keyColor: configuration.pigmentationColor,
         baselinePigmentation: configuration.baselinePigmentation,
+        pigmentationValuesToSubtract: configuration.pigmentationValuesToSubtract,
         areaOfInterestHeightPercentage: configuration.pigmentationAreaOfInterestHeightPercentage,
         horizontalSamples: configuration.horizontalSamples
     )
