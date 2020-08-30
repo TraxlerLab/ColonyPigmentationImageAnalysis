@@ -152,6 +152,15 @@ private extension Main {
             )
             
             try taskRunner.run(
+                drawPigmentationTask,
+                withInput: (image, colonyMask),
+                configuration: .init(pigmentationColor: pigmentationColor, baselinePigmentation: baselinePigmentation,
+                                     pigmentationValuesToSubtract: pigmentationValuesToSubtract,
+                                     areaOfInterestHeightPercentage: pigmentationAreaOfInterestHeightPercentage),
+                artifactDirectory: "DrawnPigmentationROI"
+            )
+            
+            try taskRunner.run(
                 pigmentationHistogramTask,
                 withInput: (image, colonyMask),
                 configuration: .init(pigmentationColor: pigmentationColor, baselinePigmentation: baselinePigmentation, pigmentationValuesToSubtract: nil, pigmentationAreaOfInterestHeightPercentage: pigmentationAreaOfInterestHeightPercentage, horizontalSamples: nil),
