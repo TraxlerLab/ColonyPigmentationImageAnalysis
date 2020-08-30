@@ -227,8 +227,6 @@ public struct LABColor: Hashable {
             + pow(colorNormalizedComponents.b - selfNormalizedComponents.b, 2)
         )
         
-        ColonyPigmentationAnalysisKit.assert(distance.isNormalized)
-        
         return distance
     }
     
@@ -243,7 +241,6 @@ public struct LABColor: Hashable {
         let distanceToCenterOfSphere = distance(to: colorAtCenterOfSphere, ignoringLightness: ignoringLightness)
         let sphereRadius: Double = 0.5
         let maximumDistance = distanceToCenterOfSphere + sphereRadius
-        ColonyPigmentationAnalysisKit.assert((0...1.1).contains(maximumDistance))
         
         let distance = self.distance(to: color, ignoringLightness: ignoringLightness)
         
