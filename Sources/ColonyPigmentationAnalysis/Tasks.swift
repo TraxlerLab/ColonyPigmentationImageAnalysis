@@ -122,14 +122,18 @@ let pigmentationSeriesTask = Task<[PigmentationSample], Void, CSV>(name: "Pigmen
 // MARK: - Draw Pigmentation
 
 struct DrawPigmentationTaskConfiguration {
-    let pigmentationColor: ColonyPigmentationAnalysisKit.RGBColor
-    let baselinePigmentation: Double
+    var pigmentationColor: ColonyPigmentationAnalysisKit.RGBColor
+    var baselinePigmentation: Double
+    var pigmentationValuesToSubtract: [Double]? = nil
+    var areaOfInterestHeightPercentage: Double = 1
 }
 
 let drawPigmentationTask = Task<(ImageMap, MaskBitMap), DrawPigmentationTaskConfiguration, ImageMap>(name: "Draw Pigmentation") { input, configuration in
     return input.0.replacingColonyPixels(
             withMask: input.1,
             withPigmentationBasedOnKeyColor: configuration.pigmentationColor,
-            baselinePigmentation: configuration.baselinePigmentation
+            baselinePigmentation: configuration.baselinePigmentation,
+            pigmentationValuesToSubtract: configuration.pigmentationValuesToSubtract,
+            areaOfInterestHeightPercentage: configuration.areaOfInterestHeightPercentage
     )
 }

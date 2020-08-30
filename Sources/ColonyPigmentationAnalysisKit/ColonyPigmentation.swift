@@ -194,15 +194,38 @@ private extension RGBColor {
 }
 
 public extension ImageMap {
-    func replacingColonyPixels(withMask mask: MaskBitMap, withPigmentationBasedOnKeyColor keyColor: RGBColor, baselinePigmentation: Double = 0) -> ImageMap {
+    func replacingColonyPixels(withMask mask: MaskBitMap, withPigmentationBasedOnKeyColor keyColor: RGBColor,
+                               baselinePigmentation: Double = 0, pigmentationValuesToSubtract: [Double]?,
+                               areaOfInterestHeightPercentage: Double) -> ImageMap {
         ColonyPigmentationAnalysisKit.assert(size == mask.size, "Image size \(size) must match mask size \(mask.size)")
+        precondition(areaOfInterestHeightPercentage.isNormalized, "areaOfInterestHeightPercentage should be a value between 0 and 1, got \(areaOfInterestHeightPercentage)")
         
         var copy = self
         
+        let maskBoundingRect = mask.areaOfInterestToCalculatePigmentationOfColonyImage(withHeightPercentage: areaOfInterestHeightPercentage)
+        
         copy.unsafeModifyPixels { (pixelIndex, pixel, pointer) in
+            let coordinate = rect.coordinate(forIndex: pixelIndex)
+            
+            guard maskBoundingRect.contains(coordinate) else {
+                pixel = .black
+                return
+            }
+            
             switch mask.pixels[pixelIndex] {
             case .white:
-                let pigmentation = pixel.pigmentation(withKeyColor: keyColor, baselinePigmentation: baselinePigmentation)
+                var pigmentation = pixel.pigmentation(withKeyColor: keyColor, baselinePigmentation: baselinePigmentation)
+                if let pigmentationValuesToSubtract = pigmentationValuesToSubtract,
+                    !pigmentationValuesToSubtract.isEmpty {
+                    let columnIndexInAreaOfInterest = Double(coordinate.x - maskBoundingRect.origin.x)
+                    let arrayRange = (0...Double(pigmentationValuesToSubtract.count - 1))
+                    
+                    let breakpointIndex = Int((0...(Double(maskBoundingRect.size.width - 1)))
+                        .projecting(columnIndexInAreaOfInterest, into: arrayRange))
+                    
+                    let baselineValueToSubtract = pigmentationValuesToSubtract[breakpointIndex]
+                    pigmentation -= baselineValueToSubtract
+                }
                 
                 let gray = UInt8(max(0, min(1, pigmentation)) * 255)
                 pixel = RGBColor(r: gray, g: gray, b: gray)
