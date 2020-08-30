@@ -153,7 +153,7 @@ public extension Array where Element == PigmentationSample {
     /// Returns the x coordinates (from 0 to 1) of each column in `self`, repeated a number of times proportional to the pigmentation.
     func oneDimensionHistogram() -> [Double] {
         return flatMap { (pigmentationSample) -> [Double] in
-            let numberOfTimes = Int(pigmentationSample.averagePigmentation / 0.1)
+            let numberOfTimes = Int(pigmentationSample.averagePigmentation / 0.01)
             
             return [Double](repeating: pigmentationSample.x, count: numberOfTimes)
         }
