@@ -155,16 +155,6 @@ public struct XYZColor: Hashable {
         y = (redCoefficient * 0.2126) + (greenCoefficient * 0.7152) + (blueCoefficient * 0.0722)
         z = (redCoefficient * 0.0193) + (greenCoefficient * 0.1192) + (blueCoefficient * 0.9505)
     }
-    
-    public func distance(to color: XYZColor) -> Double {
-        let distance = sqrt(
-            pow(color.x - x, 2)
-                + pow(color.y - y, 2)
-                + pow(color.z - z, 2)
-        )
-        
-        return distance > 0.4 ? 1 : distance
-    }
 }
 
 // MARK: - LAB Color Space
