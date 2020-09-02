@@ -236,6 +236,14 @@ public extension ImageMap {
         
         return copy
     }
+    
+    mutating func removePixelsOutsideAreaOfInterest(withMask mask: MaskBitMap, areaOfInterestHeightPercentage: Double) {
+        precondition(areaOfInterestHeightPercentage.isNormalized, "areaOfInterestHeightPercentage should be a value between 0 and 1, got \(areaOfInterestHeightPercentage)")
+        
+        let areaOfInterest = mask.areaOfInterestToCalculatePigmentationOfColonyImage(withHeightPercentage: areaOfInterestHeightPercentage)
+        
+        crop(with: areaOfInterest)
+    }
 }
 
 private extension MaskBitMap {

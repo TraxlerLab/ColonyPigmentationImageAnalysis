@@ -146,8 +146,7 @@ private extension Main {
             try taskRunner.run(
                 drawPigmentationTask,
                 withInput: (image, colonyMask),
-                configuration: .init(pigmentationColor: pigmentationColor, baselinePigmentation: baselinePigmentation,
-                                     pigmentationValuesToSubtract: pigmentationValuesToSubtract),
+                configuration: .init(pigmentationColor: pigmentationColor, baselinePigmentation: baselinePigmentation),
                 artifactDirectory: "DrawnPigmentation"
             )
             
@@ -156,7 +155,8 @@ private extension Main {
                 withInput: (image, colonyMask),
                 configuration: .init(pigmentationColor: pigmentationColor, baselinePigmentation: baselinePigmentation,
                                      pigmentationValuesToSubtract: pigmentationValuesToSubtract,
-                                     areaOfInterestHeightPercentage: pigmentationAreaOfInterestHeightPercentage),
+                                     areaOfInterestHeightPercentage: pigmentationAreaOfInterestHeightPercentage,
+                                     cropWithinAreaOfInterest: true),
                 artifactDirectory: "DrawnPigmentationROI"
             )
             

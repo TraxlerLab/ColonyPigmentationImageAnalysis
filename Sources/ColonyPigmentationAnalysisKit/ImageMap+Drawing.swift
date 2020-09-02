@@ -18,6 +18,24 @@ extension ImageMap {
             }
         }
     }
+    
+    mutating func crop(with rect: Rect) {
+        precondition(self.rect.contains(rect), "The provided rect \(rect) is not contained within \(self.rect)")
+        
+        var image = ImageMap(size: rect.size, pixels: [RGBColor](repeating: .black, count: rect.size.area))
+        
+        image.unsafeModifyPixels { (index, pixel, _) in
+            let roiCoordinate = rect.coordinate(forIndex: index)
+            let originalImageCoordinate = Coordinate(
+                x: roiCoordinate.x + rect.minX,
+                y: roiCoordinate.y + rect.minY
+            )
+            
+            pixel = self[originalImageCoordinate]
+        }
+        
+        self = image
+    }
 }
 
 extension MaskBitMap {

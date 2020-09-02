@@ -126,14 +126,21 @@ struct DrawPigmentationTaskConfiguration {
     var baselinePigmentation: Double
     var pigmentationValuesToSubtract: [Double]? = nil
     var areaOfInterestHeightPercentage: Double = 1
+    var cropWithinAreaOfInterest: Bool = false
 }
 
 let drawPigmentationTask = Task<(ImageMap, MaskBitMap), DrawPigmentationTaskConfiguration, ImageMap>(name: "Draw Pigmentation") { input, configuration in
-    return input.0.replacingColonyPixels(
-            withMask: input.1,
-            withPigmentationBasedOnKeyColor: configuration.pigmentationColor,
-            baselinePigmentation: configuration.baselinePigmentation,
-            pigmentationValuesToSubtract: configuration.pigmentationValuesToSubtract,
-            areaOfInterestHeightPercentage: configuration.areaOfInterestHeightPercentage
+    var result = input.0.replacingColonyPixels(
+        withMask: input.1,
+        withPigmentationBasedOnKeyColor: configuration.pigmentationColor,
+        baselinePigmentation: configuration.baselinePigmentation,
+        pigmentationValuesToSubtract: configuration.pigmentationValuesToSubtract,
+        areaOfInterestHeightPercentage: configuration.areaOfInterestHeightPercentage
     )
+    
+    if configuration.cropWithinAreaOfInterest {
+        result.removePixelsOutsideAreaOfInterest(withMask: input.1, areaOfInterestHeightPercentage: configuration.areaOfInterestHeightPercentage)
+    }
+    
+    return result
 }
