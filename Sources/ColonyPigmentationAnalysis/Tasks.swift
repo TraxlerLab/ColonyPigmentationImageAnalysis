@@ -95,6 +95,7 @@ let removeBackgroundTask = Task<(ImageMap, MaskBitMap), (), ImageMap>(name: "Rem
 struct PigmentationHistogramTaskConfiguration {
     let pigmentationColor: ColonyPigmentationAnalysisKit.RGBColor
     let baselinePigmentation: Double
+    let pigmentationValuesToSubtract: [Double]?
     let pigmentationAreaOfInterestHeightPercentage: Double
     let horizontalSamples: Int?
 }
@@ -104,6 +105,7 @@ let pigmentationHistogramTask = Task<(ImageMap, MaskBitMap), PigmentationHistogr
         withColonyMask: input.1,
         keyColor: configuration.pigmentationColor,
         baselinePigmentation: configuration.baselinePigmentation,
+        pigmentationValuesToSubtract: configuration.pigmentationValuesToSubtract,
         areaOfInterestHeightPercentage: configuration.pigmentationAreaOfInterestHeightPercentage,
         horizontalSamples: configuration.horizontalSamples
     )
@@ -120,14 +122,25 @@ let pigmentationSeriesTask = Task<[PigmentationSample], Void, CSV>(name: "Pigmen
 // MARK: - Draw Pigmentation
 
 struct DrawPigmentationTaskConfiguration {
-    let pigmentationColor: ColonyPigmentationAnalysisKit.RGBColor
-    let baselinePigmentation: Double
+    var pigmentationColor: ColonyPigmentationAnalysisKit.RGBColor
+    var baselinePigmentation: Double
+    var pigmentationValuesToSubtract: [Double]? = nil
+    var areaOfInterestHeightPercentage: Double = 1
+    var cropWithinAreaOfInterest: Bool = false
 }
 
 let drawPigmentationTask = Task<(ImageMap, MaskBitMap), DrawPigmentationTaskConfiguration, ImageMap>(name: "Draw Pigmentation") { input, configuration in
-    return input.0.replacingColonyPixels(
-            withMask: input.1,
-            withPigmentationBasedOnKeyColor: configuration.pigmentationColor,
-            baselinePigmentation: configuration.baselinePigmentation
+    var result = input.0.replacingColonyPixels(
+        withMask: input.1,
+        withPigmentationBasedOnKeyColor: configuration.pigmentationColor,
+        baselinePigmentation: configuration.baselinePigmentation,
+        pigmentationValuesToSubtract: configuration.pigmentationValuesToSubtract,
+        areaOfInterestHeightPercentage: configuration.areaOfInterestHeightPercentage
     )
+    
+    if configuration.cropWithinAreaOfInterest {
+        result.removePixelsOutsideAreaOfInterest(withMask: input.1, areaOfInterestHeightPercentage: configuration.areaOfInterestHeightPercentage)
+    }
+    
+    return result
 }

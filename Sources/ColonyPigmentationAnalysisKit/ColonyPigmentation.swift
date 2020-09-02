@@ -54,6 +54,12 @@ public struct PigmentationSample {
         
         return averagePigmentations
     }
+    
+    // TODO
+    public static func minAveragePigmentation(_ pigmentationSamples: [[PigmentationSample]]) -> Double {
+        let pigmentationAverages = pigmentationSamples.map { $0.map(\.averagePigmentation).average }
+        return pigmentationAverages.min()!
+    }
 }
 
 public extension ImageMap {
@@ -63,6 +69,7 @@ public extension ImageMap {
     ///     - keyColor: the color to compare all pixels to (considered maximum pigmentation)
     ///     - baselinePigmentation: a cut-off value between 0 and 1 that would cause all pigmentation values below this to be considered not pigmented.
     ///         Values above it would then be interpolated between that value and 1.
+    ///     - pigmentationValuesToSubtract: An optional array of `horizontalSamples` values to use to subtract the pigmentation in each column.
     ///     - areaOfInterestHeightPercentage: A value between 0 and 1 to use to only consider pixels at a given x location that are inside a rectangle of height
     ///                               determined by the height of the mask times this value. This can be used to only consider pigmentation across a
     ///                               central "band" in the colony, instead of every pixel.
@@ -70,10 +77,15 @@ public extension ImageMap {
     ///                          (Must be less than the horizontal number of pixel columns in the colony)
     /// - Returns: An array of `PigmentationSample`s.
     func calculate2DPigmentationAverages(withColonyMask colonyMask: MaskBitMap, keyColor: RGBColor,
-                                         baselinePigmentation: Double = 0, areaOfInterestHeightPercentage: Double,
-                                         horizontalSamples: Int?) -> [PigmentationSample] {
+                                         baselinePigmentation: Double = 0, pigmentationValuesToSubtract: [Double]?,
+                                         areaOfInterestHeightPercentage: Double, horizontalSamples: Int?)
+    -> [PigmentationSample] {
         precondition(size == colonyMask.size, "The colony image and its mask should be the same size \(size) vs \(colonyMask.size)")
         precondition(areaOfInterestHeightPercentage.isNormalized, "areaOfInterestHeightPercentage should be a value between 0 and 1, got \(areaOfInterestHeightPercentage)")
+        if let pigmentationValuesToSubtract = pigmentationValuesToSubtract {
+            precondition(horizontalSamples != nil, "If pigmentation values to subtract are specified, then we need a fixed set of horizontal samples")
+            precondition(pigmentationValuesToSubtract.count == horizontalSamples, "The specified pigmentation values to subtract (\(pigmentationValuesToSubtract.count) values) does not match the number of horizontal samples (\(horizontalSamples ?? 0))")
+        }
         
         let areaOfInterest = colonyMask.areaOfInterestToCalculatePigmentationOfColonyImage(withHeightPercentage: areaOfInterestHeightPercentage)
         
@@ -113,8 +125,12 @@ public extension ImageMap {
             if sampledColumnPixels.isEmpty {
                 logger.warning("Found no white pixels in mask for sample index \(sampleIndex) (columns \(columns) in roi \(areaOfInterest)). This may be an error.")
             }
-            
-            let pigmentationValues = sampledColumnPixels.map({ $0.pigmentation(withKeyColor: keyColor, baselinePigmentation: baselinePigmentation) })
+            let pigmentationValues = sampledColumnPixels.map {
+                max(0,
+                    $0.pigmentation(withKeyColor: keyColor, baselinePigmentation: baselinePigmentation)
+                        - (pigmentationValuesToSubtract?[sampleIndex] ?? 0)
+                )
+            }
             
             samples.append((average: pigmentationValues.average, stddev: pigmentationValues.standardDeviation, columnIndices: Array(columns)))
         }
@@ -137,7 +153,7 @@ public extension Array where Element == PigmentationSample {
     /// Returns the x coordinates (from 0 to 1) of each column in `self`, repeated a number of times proportional to the pigmentation.
     func oneDimensionHistogram() -> [Double] {
         return flatMap { (pigmentationSample) -> [Double] in
-            let numberOfTimes = Int(pigmentationSample.averagePigmentation / 0.1)
+            let numberOfTimes = Int(pigmentationSample.averagePigmentation / 0.01)
             
             return [Double](repeating: pigmentationSample.x, count: numberOfTimes)
         }
@@ -178,15 +194,38 @@ private extension RGBColor {
 }
 
 public extension ImageMap {
-    func replacingColonyPixels(withMask mask: MaskBitMap, withPigmentationBasedOnKeyColor keyColor: RGBColor, baselinePigmentation: Double = 0) -> ImageMap {
+    func replacingColonyPixels(withMask mask: MaskBitMap, withPigmentationBasedOnKeyColor keyColor: RGBColor,
+                               baselinePigmentation: Double = 0, pigmentationValuesToSubtract: [Double]?,
+                               areaOfInterestHeightPercentage: Double) -> ImageMap {
         ColonyPigmentationAnalysisKit.assert(size == mask.size, "Image size \(size) must match mask size \(mask.size)")
+        precondition(areaOfInterestHeightPercentage.isNormalized, "areaOfInterestHeightPercentage should be a value between 0 and 1, got \(areaOfInterestHeightPercentage)")
         
         var copy = self
         
+        let maskBoundingRect = mask.areaOfInterestToCalculatePigmentationOfColonyImage(withHeightPercentage: areaOfInterestHeightPercentage)
+        
         copy.unsafeModifyPixels { (pixelIndex, pixel, pointer) in
+            let coordinate = rect.coordinate(forIndex: pixelIndex)
+            
+            guard maskBoundingRect.contains(coordinate) else {
+                pixel = .black
+                return
+            }
+            
             switch mask.pixels[pixelIndex] {
             case .white:
-                let pigmentation = pixel.pigmentation(withKeyColor: keyColor, baselinePigmentation: baselinePigmentation)
+                var pigmentation = pixel.pigmentation(withKeyColor: keyColor, baselinePigmentation: baselinePigmentation)
+                if let pigmentationValuesToSubtract = pigmentationValuesToSubtract,
+                    !pigmentationValuesToSubtract.isEmpty {
+                    let columnIndexInAreaOfInterest = Double(coordinate.x - maskBoundingRect.origin.x)
+                    let arrayRange = (0...Double(pigmentationValuesToSubtract.count - 1))
+                    
+                    let breakpointIndex = Int((0...(Double(maskBoundingRect.size.width - 1)))
+                        .projecting(columnIndexInAreaOfInterest, into: arrayRange))
+                    
+                    let baselineValueToSubtract = pigmentationValuesToSubtract[breakpointIndex]
+                    pigmentation -= baselineValueToSubtract
+                }
                 
                 let gray = UInt8(max(0, min(1, pigmentation)) * 255)
                 pixel = RGBColor(r: gray, g: gray, b: gray)
@@ -196,6 +235,14 @@ public extension ImageMap {
         }
         
         return copy
+    }
+    
+    mutating func removePixelsOutsideAreaOfInterest(withMask mask: MaskBitMap, areaOfInterestHeightPercentage: Double) {
+        precondition(areaOfInterestHeightPercentage.isNormalized, "areaOfInterestHeightPercentage should be a value between 0 and 1, got \(areaOfInterestHeightPercentage)")
+        
+        let areaOfInterest = mask.areaOfInterestToCalculatePigmentationOfColonyImage(withHeightPercentage: areaOfInterestHeightPercentage)
+        
+        crop(with: areaOfInterest)
     }
 }
 
